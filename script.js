@@ -164,6 +164,7 @@ function createNormalizedNameSet(itemList) {
     for (const item of itemList) {
         normalizedNameSet.add(normalizeItemName(item));
     }
+    console.log(normalizedNameSet);
     return normalizedNameSet;
 }
 

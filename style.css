@@ -55,13 +55,38 @@ body {
 }
 
 /* 各列の幅 */
-#thCheckbox { width: 3%; }
-#thCategory { width: 7%; }
-#thItemName { width: 10%; }
-#thIdentifiedItemName { width: 10%; }
-#thBuyPrice { width: 5%; }
-#thSellPrice { width: 5%; }
-#thCandidates { width: 60%; }
+/* PC向けのスタイル */
+@media (min-width: 1025px) {
+    #thCheckbox { width: 3%; }
+    #thCategory { width: 7%; }
+    #thItemName { width: 10%; }
+    #thIdentifiedItemName { width: 10%; }
+    #thBuyPrice { width: 5%; }
+    #thSellPrice { width: 5%; }
+    #thCandidates { width: 60%; }
+}
+
+/* スマートフォン向けのスタイル */
+@media (max-width: 600px) {
+    #thCheckbox { width: 5%; }
+    #thCategory { width: 15%; }
+    #thItemName { width: 20%; }
+    #thIdentifiedItemName { width: 20%; }
+    #thBuyPrice { width: 10%; }
+    #thSellPrice { width: 10%; }
+    #thCandidates { width: 20%; }
+    
+}
+/* タブレット向けのスタイル */
+@media (min-width: 601px) and (max-width: 1024px) {
+    #thCheckbox { width: 4%; }
+    #thCategory { width: 10%; }
+    #thItemName { width: 15%; }
+    #thIdentifiedItemName { width: 15%; }
+    #thBuyPrice { width: 7%; }
+    #thSellPrice { width: 7%; }
+    #thCandidates { width: 42%; }
+}
 
 .candidates {
     white-space: pre-wrap; /* テキストを改行ありにする */
