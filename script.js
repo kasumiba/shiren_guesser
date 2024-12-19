@@ -1,8 +1,10 @@
+// 変更してみたけど変わってるかな？
+
 import * as ic from './items.js';
 
 // アイテムカテゴリの選択肢
 const selectOptionsItemCategory = {
-    grass: '草',
+    grass: '草草',
     scroll: '巻物',
     staff: '杖',
     bracelet: '腕輪',
