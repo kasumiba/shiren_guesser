@@ -1,0 +1,77 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+/* テーブル関連 */
+.button-container {
+    display: flex;  /* 子要素を横並びに配置 */
+    justify-content: space-between; /* 左右(左端と右端)に配置 */
+    margin-top: 10px; /* 親要素の余白 */
+}
+#deleteButton {
+    padding: 5px 15px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#deleteAllButton {
+    padding: 5px 15px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+#deleteButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+#deleteAllButton:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+/* テーブル列幅を固定 */
+#itemTable {
+    table-layout: fixed; /* テーブルの列幅を固定 */
+    width: 100%; /* テーブル全体を幅いっぱいに */
+    margin-top: 20px;
+}
+
+#itemTable th,
+#itemTable td {
+    word-wrap: break-word; /* テキストがセル幅を超えた場合に折り返す */
+    overflow: hidden; /* テキストがセル幅を超えた部分を非表示に */
+    border: 1px solid #ccc;
+    padding: 10px;
+    text-align: left;
+    background-color: #f4f4f4;
+}
+
+/* 各列の幅 */
+#thCheckbox { width: 3%; }
+#thCategory { width: 7%; }
+#thItemName { width: 10%; }
+#thIdentifiedItemName { width: 10%; }
+#thBuyPrice { width: 5%; }
+#thSellPrice { width: 5%; }
+#thCandidates { width: 60%; }
+
+.candidates {
+    white-space: pre-wrap; /* テキストを改行ありにする */
+}
+
+.error {
+    color: red;
+    margin-top: 10px;
+}
+
+#errorMessageNameUsed {
+    display: none;
+}

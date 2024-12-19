@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>シレン識別ツール</title>
+    <!-- CSSファイルをリンク -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>シレン識別ツール</h1>
+    <label for="dropdownItemCategory">アイテムカテゴリ:</label>
+    <select id="dropdownItemCategory"></select>
+
+    <label for="textItemName">アイテムの名前を入力:</label>
+    <input type="text" id="textItemName" disabled />
+
+    <button type="button" id="addButton" disabled>追加</button>
+    <p class="error" id="errorMessageNameUsed"></p>
+
+    <h2>一覧表</h2>
+    <div class="button-container">
+        <button type="button" id="deleteButton" disabled>チェックしたアイテムを削除</button>
+        <button type="button" id="deleteAllButton" disabled>全て削除</button>
+    </div>
+    <table id="itemTable">
+        <thead>
+            <tr>
+                <th id="thCheckbox"></th>
+                <th id="thCategory">カテゴリ</th>
+                <th id="thItemName">アイテム名</th>
+                <th id="thIdentifiedItemName">確定アイテム名</th>
+                <th id="thBuyPrice">買値</th>
+                <th id="thSellPrice">売値</th>
+                <th id="thCandidates">候補</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 追加されたアイテムがここに表示されます -->
+        </tbody>
+    </table>
+
+    <!-- JavaScriptファイルをリンク -->
+    <script type="module" src="./script.js"></script>
+</body>
+</html>
