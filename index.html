@@ -9,18 +9,33 @@
 </head>
 <body>
     <h1>シレン識別ツール</h1>
-    <label for="dropdownItemCategory">アイテムカテゴリ:</label>
-    <select id="dropdownItemCategory"></select>
+    <label>アイテムカテゴリ</label>
+    <div id="radioCategoryFilter">
+        <label><input type="radio" name="categoryFilter" value="all" checked> 全て</label>
+        <label><input type="radio" name="categoryFilter" value="grass"> 草</label>
+        <label><input type="radio" name="categoryFilter" value="scroll"> 巻物</label>
+        <label><input type="radio" name="categoryFilter" value="staff"> 杖</label>
+        <label><input type="radio" name="categoryFilter" value="bracelet"> 腕輪</label>
+        <label><input type="radio" name="categoryFilter" value="incense"> お香</label>
+        <label><input type="radio" name="categoryFilter" value="pot"> 壺</label>
+    </div>
+    
+    <label>確定状況</label>
+    <div id="radioIdentifiedFilter">
+        <label><input type="radio" name="identifiedFilter" value="all" checked> 全て</label>
+        <label><input type="radio" name="identifiedFilter" value="identified"> 確定済み</label>
+        <label><input type="radio" name="identifiedFilter" value="unidentified"> 未確定</label>
+    </div>
 
-    <label for="textItemName">アイテムの名前を入力:</label>
-    <input type="text" id="textItemName" disabled />
+    <label for="itemNameInput">アイテムを追加:</label>
+    <input type="text" id="itemNameInput" disabled />
 
     <button type="button" id="addButton" disabled>追加</button>
     <p class="error" id="errorMessageNameUsed"></p>
 
     <h2>一覧表</h2>
     <div class="button-container">
-        <button type="button" id="deleteButton" disabled>チェックしたアイテムを削除</button>
+        <button type="button" id="deleteCheckedItemsButton" disabled>チェックしたアイテムを削除</button>
         <button type="button" id="deleteAllButton" disabled>全て削除</button>
     </div>
     <table id="itemTable">
@@ -39,6 +54,19 @@
             <!-- 追加されたアイテムがここに表示されます -->
         </tbody>
     </table>
+
+    <!-- ポップアップウィンドウ -->
+    <div id="popupWindow" class="popup-window">
+        <div class="popup-content">
+            <span id="closePopup" class="close">&times;</span>
+            <h2>アイテム詳細入力</h2>
+            <label for="popupBuyPrice">買値：</label>
+            <input type="number" id="popupBuyPrice" />
+            <label for="popupSellPrice">売値：</label>
+            <input type="number" id="popupSellPrice" />
+            <button id="saveDetails">決定</button>
+        </div>
+    </div>
 
     <!-- JavaScriptファイルをリンク -->
     <script type="module" src="./script.js"></script>
