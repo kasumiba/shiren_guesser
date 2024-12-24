@@ -1,71 +1,93 @@
-// 草クラス
-export class Grass {
-    constructor(category, name, buyPrice, sellPrice, candidates) {
-        this.category = category
-        this.name = name
-        this.buyPrice = buyPrice
-        this.sellPrice = sellPrice
-        this.candidates = candidates
+// アイテムクラス
+export class Item {
+    constructor(categoryValue, name) {
+        this.categoryValue = categoryValue;
+        this.name = name;
+    }
+
+    // アイテムのプロパティを初期化
+    initItemProperties() {
+        this.identifiedName = 'default';
+        this.buyPrice = null;
+        this.sellPrice = null;
+        this.allCandidatesList = [];
+    }
+
+    // カテゴリーのテキストを取得
+    getCategoryText() {
+        return categoryEnglishToJapanese[this.categoryValue];
+    }
+
+    // 買値、売値の計算
+    calcPrice(input) {
+        if (input.id === 'popupBuyPrice') {
+            // 買値が入力された場合
+            this.sellPrice = buyToSell[input.value];
+            document.getElementById('popupSellPrice').value = this.sellPrice;
+        } else {
+            // 売値が入力された場合
+            this.buyPrice = sellToBuy[input.value];
+            document.getElementById('popupBuyPrice').value = this.buyPrice;
+        }
+    }
+
+    // アイテムの候補リストを取得
+    getPriceMatchList() {
+        const categoryList = this.getCategoryList();
+        
+        if (this.buyPrice === null || this.buyPrice === '') {
+            const priceMatchList = categoryList.map(item => item.name);
+            return this.getUniqueItemList(priceMatchList);
+        } else {
+            const priceMatchList = categoryList.filter(item => item.buyPrice === this.buyPrice).map(item => item.name);
+            console.log(priceMatchList);
+            return this.getUniqueItemList(priceMatchList);
+        }
+    }
+
+    // カテゴリーのリストを取得
+    getCategoryList() {
+        switch (this.categoryValue) {
+            case 'grass':
+                return grassList;
+            case 'scroll':
+                return scrollList;
+            case 'staff':
+                return staffList;
+            case 'bracelet':
+                return braceletList;
+            case 'incense':
+                return incenseList;
+            case 'pot':
+                return potList;
+        };
+    }
+
+    // 重複を削除したアイテムのリストを取得
+    getUniqueItemList(list) {
+        return Array.from(new Set(list.map(item => this.normalizeItemName(item))));
+    }
+
+    // アイテム名を正規化
+    normalizeItemName(item) {
+        return item.replace(/\[.*\]/g, '').trim();
     }
 }
 
-// 巻物クラス
-export class Scroll {
-    constructor(category, name, buyPrice, sellPrice, useToItem, candidates) {
-        this.category = category
-        this.name = name
-        this.buyPrice = buyPrice
-        this.sellPrice = sellPrice
-        this.useToItem = useToItem
-        this.candidates = candidates
-    }
-}
+// カテゴリ名　英語→日本語　対応表
+const categoryEnglishToJapanese = {
+    "grass": "草",
+    "scroll": "巻物",
+    "staff": "杖",
+    "bracelet": "腕輪",
+    "incense": "お香",
+    "pot": "壺"
+};
 
-// 杖クラス
-export class Staff {
-    constructor(category, name, buyPrice, sellPrice, charges, candidates) {
-        this.category = category
-        this.name = name
-        this.buyPrice = buyPrice
-        this.sellPrice = sellPrice
-        this.charges = charges
-        this.candidates = candidates
-    }
-}
-
-// 腕輪クラス
-export class Bracelet {
-    constructor(category, name, buyPrice, sellPrice, candidates) {
-        this.category = category
-        this.name = name
-        this.buyPrice = buyPrice
-        this.sellPrice = sellPrice
-        this.candidates = candidates
-    }
-}
-
-// お香クラス
-export class Incense {
-    constructor(category, name, buyPrice, sellPrice, candidates) {
-        this.category = category
-        this.name = name
-        this.buyPrice = buyPrice
-        this.sellPrice = sellPrice
-        this.candidates = candidates
-    }
-}
-
-// 壺クラス
-export class Pot {
-    constructor(category, name, buyPrice, sellPrice, emptyOrBack, candidates) {
-        this.category = category
-        this.name = name
-        this.buyPrice = buyPrice
-        this.sellPrice = sellPrice
-        this.emptyOrBack = emptyOrBack
-        this.candidates = candidates
-    }
-}
+// カテゴリ名　日本語→英語　対応表
+const categoryJapaneseToEnglish = Object.fromEntries(
+    Object.entries(categoryEnglishToJapanese).map(([en, ja]) => [ja, en])
+);
 
 
 // 買値、売値の対応表（一部の草が、0.4かけるだけではダメなので）
@@ -118,6 +140,7 @@ export const buyToSell = {
 export const sellToBuy = Object.fromEntries(
     Object.entries(buyToSell).map(([buy, sell]) => [sell, buy])
 );
+
 
 // 実際のアイテムの詳細データ
 

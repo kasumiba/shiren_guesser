@@ -77,13 +77,13 @@ body {
 
 /* スマートフォン向けのスタイル */
 @media (max-width: 600px) {
-    #thCheckbox { width: 5%; }
-    #thCategory { width: 15%; }
-    #thItemName { width: 20%; }
-    #thIdentifiedItemName { width: 20%; }
-    #thBuyPrice { width: 10%; }
-    #thSellPrice { width: 10%; }
-    #thCandidates { width: 20%; }
+    #thCheckbox { width: 4%; }
+    #thCategory { width: 12%; }
+    #thItemName { width: 18%; }
+    #thIdentifiedItemName { width: 18; }
+    #thBuyPrice { width: 8%; }
+    #thSellPrice { width: 8%; }
+    #thCandidates { width: 30%; }
     
 }
 /* タブレット向けのスタイル */
@@ -97,7 +97,7 @@ body {
     #thCandidates { width: 42%; }
 }
 
-.candidates {
+.candidatesForShow {
     white-space: pre-wrap; /* テキストを改行ありにする */
 }
 

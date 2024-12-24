@@ -44,10 +44,8 @@
                 <th id="thCheckbox"></th>
                 <th id="thCategory">カテゴリ</th>
                 <th id="thItemName">アイテム名</th>
-                <th id="thIdentifiedItemName">確定アイテム名</th>
-                <th id="thBuyPrice">買値</th>
-                <th id="thSellPrice">売値</th>
-                <th id="thCandidates">候補</th>
+                <th id="thIdentifiedItemName">確定</th>
+                <th id="thCandidatesForShow">候補</th>
             </tr>
         </thead>
         <tbody>
@@ -55,10 +53,10 @@
         </tbody>
     </table>
 
-    <!-- ポップアップウィンドウ -->
-    <div id="popupWindow" class="popup-window">
+    <!-- 買値売値ポップアップウィンドウ -->
+    <div id="pricePopupWindow" class="popup-window">
         <div class="popup-content">
-            <span id="closePopup" class="close">&times;</span>
+            <span id="closePricePopup" class="close">&times;</span>
             <h2>アイテム詳細入力</h2>
             <label for="popupBuyPrice">買値：</label>
             <input type="number" id="popupBuyPrice" />
@@ -67,6 +65,18 @@
             <button id="saveDetails">決定</button>
         </div>
     </div>
+    
+    <!-- 候補リストポップアップウィンドウ -->
+    <div id="candidatesPopupWindow" class="popup-window">
+        <div class="popup-content">
+            <span id="closeCandidatesPopup" class="close">&times;</span>
+            <h2>候補リスト</h2>
+            <ul id="candidatesList">
+                <!-- 候補がここに表示されます -->
+            </ul>
+        </div>
+    </div>
+
 
     <!-- JavaScriptファイルをリンク -->
     <script type="module" src="./script.js"></script>

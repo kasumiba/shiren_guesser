@@ -1,5 +1,10 @@
 import * as itemData from './items.js';
 
+// アイテムクラスを格納する配列
+const items = new Map();
+
+let itemID = 0;
+
 // DOM 要素取得
 const radioCategoryFilter = document.getElementById('radioCategoryFilter');
 const radioIdentifiedFilter = document.getElementById('radioIdentifiedFilter');
@@ -10,12 +15,17 @@ const deleteAllButton = document.getElementById('deleteAllButton');
 const errorMessageNameUsed = document.getElementById('errorMessageNameUsed');
 const tableBody = document.getElementById('itemTable').querySelector('tbody');
 
-// ポップアップウィンドウの要素取得
-const popupWindow = document.getElementById('popupWindow');
-const closePopup = document.getElementById('closePopup');
+// 買値売値ポップアップウィンドウの要素取得
+const pricePopupWindow = document.getElementById('pricePopupWindow');
+const closePricePopup = document.getElementById('closePricePopup');
 const saveDetails = document.getElementById('saveDetails');
 const popupBuyPrice = document.getElementById('popupBuyPrice');
 const popupSellPrice = document.getElementById('popupSellPrice');
+
+// 候補リストポップアップウィンドウの要素取得
+const candidatesPopupWindow = document.getElementById('candidatesPopupWindow');
+const closeCandidatesPopup = document.getElementById('closeCandidatesPopup');
+const popupCandidatesList = document.getElementById('candidatesList');
 let currentItemRow;
 
 
@@ -66,7 +76,6 @@ function refreshAll() {
     validateInput();
     resetCheckboxes();
     updateDeleteButtonState();
-    refreshCandidates();
     showFilteredItems();
 }
 
@@ -153,30 +162,36 @@ function updateDeleteButtonState() {
     deleteAllButton.disabled = tableBody.childElementCount === 0;
 }
 
-// 候補リストを更新
-function refreshCandidates() {
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {row.querySelector('.candidates').textContent = createCandidatesList(row).join('\n')});
-}
-
 // フィルターに基づいてアイテムを表示
 function showFilteredItems() {
+    const filteredItemsMap = createFilteredItemsMap();
+
+    tableBody.innerHTML = '';
+
+    for (const [id, item] of filteredItemsMap.entries()) {
+        addItemToTable(id, item);
+    }
+}
+
+// フィルター条件にマッチするアイテムのマップを作成
+function createFilteredItemsMap() {
     const selectedCategoryValue = getSelectedCategoryFilter('value');
     const selectedIdentifiedValue = getSelectedIdentifiedFilter('value');
 
-    Array.from(tableBody.querySelectorAll('tr')).forEach(row => {
-            row.style.display = isMatchFilter(selectedCategoryValue, selectedIdentifiedValue, row) ? '' : 'none';
-    });
+    const filteredItems = new Map();
+    for (const [id, item] of items.entries()) {
+        if (isMatchFilter(selectedCategoryValue, selectedIdentifiedValue, item)) {
+            filteredItems.set(id, item);
+        }
+    }
+    return filteredItems;
 }
 
 // フィルター条件にマッチしているか判定
-function isMatchFilter(selectedCategoryValue, selectedIdentifiedValue, row) {
-    const currentCategoryValue = row.querySelector('.itemCategory').dataset.value;
-    const currentIdentifiedItemValue = row.querySelector('.identifiedItem').value;
-
+function isMatchFilter(selectedCategoryValue, selectedIdentifiedValue, item) {
     // カテゴリの一致を判定
     const isCategoryMatch = selectedCategoryValue === 'all'
-        || (selectedCategoryValue && selectedCategoryValue === currentCategoryValue);
+        || (selectedCategoryValue && selectedCategoryValue === item.categoryValue);
 
     // 確定状況の一致を判定
     let isIdentifiedMatch;
@@ -205,51 +220,76 @@ function handleKeyPressInItemNameInput(event) {
 // アイテム追加処理
 function addItem() {
     const selectedCategoryValue = getSelectedCategoryFilter('value');
-    const selectedCategoryText = getSelectedCategoryFilter('label');
     const itemName = itemNameInput.value.trim();
 
-    addItemToTable(selectedCategoryValue, selectedCategoryText, itemName);
+    const item = new itemData.Item(selectedCategoryValue, itemName);
+    item.initItemProperties();
+    item.allCandidatesList = createCandidatesList(item);
+
+    items.set(itemID, item);
+    itemID++;   // IDをインクリメント
 
     refreshAll();
 }
 
 // アイテムをテーブルに追加
-function addItemToTable(categoryValue, categoryText, itemName) {
+function addItemToTable(id, item) {
     const row = tableBody.insertRow();
-    row.innerHTML = createTableRowHTML(categoryValue, categoryText, itemName);
+    row.setAttribute('data-id', id);    // data-id属性を設定
+    row.innerHTML = createTableRowHTML(item);
     row.querySelector('.itemCheckbox').addEventListener('change', updateDeleteButtonState);
-    row.querySelector('.itemName').addEventListener('click', () => openPopup(row));
-    row.querySelector('.identifiedItem').addEventListener('change', identifyItem);
+    row.querySelector('.itemName').addEventListener('click', () => openPricePopup(row));
+    row.querySelector('.identifiedItem').addEventListener('change',() => identifyItem(row));
 
+    item.allCandidatesList = createCandidatesList(item);
     populateIdentifiedDropdown(row);
+
+    // 候補リストを表示
+    showCandidatesText(row);
 }
 
 // テーブル行のHTMLを作成
-function createTableRowHTML(categoryValue, categoryText, itemName) {
+function createTableRowHTML(item) {
     return `
         <td><input type="checkbox" class="itemCheckbox" /></td>
-        <td class="itemCategory" data-value="${categoryValue}">${categoryText}</td>
-        <td class="itemName"><span style="color: blue; text-decoration: underline; cursor: pointer;">${itemName}</span></td>
+        <td class="itemCategory">${item.getCategoryText()}</td>
+        <td class="itemName"><span style="color: blue; text-decoration: underline; cursor: pointer;">${item.name}</span></td>
         <td>
             <select class="identifiedItem" >
                 <option value="" disabled selected>確定したら選択</option>
             </select>
         </td>
-        <td class="buyPrice"></td>
-        <td class="sellPrice"></td>
-        <td class="candidates"></td>
+        <td class="candidatesForShow"></td>
     `;
 }
 
-// ポップアップウィンドウを開く
-function openPopup(row) {
+// 買値売値のポップアップウィンドウを開く
+function openPricePopup(row) {
+    const dataID = parseInt(row.dataset.id);
+    const item = items.get(dataID);
+    
     currentItemRow = row;
-    popupWindow.style.display = 'block';
+    // ポップアップウィンドウを初期化
+    popupBuyPrice.value = item.buyPrice;
+    popupSellPrice.value = item.sellPrice;
+
+    pricePopupWindow.style.display = 'block';
 }
 
-// ポップアップウィンドウを閉じる
-function closePopupWindow() {
-    popupWindow.style.display = 'none';
+// 候補リストのポップアップウィンドウを開く
+function openCandidatesPopup(row) {
+    const dataID = parseInt(row.dataset.id)
+    const item = items.get(dataID);
+    const allCandidates = item.allCandidatesList;
+    popupCandidatesList.innerHTML = '';
+
+    allCandidates.forEach(candidate => {
+        const li = document.createElement('li');
+        li.textContent = candidate;
+        popupCandidatesList.appendChild(li);
+    });
+
+    candidatesPopupWindow.style.display = 'block';
 }
 
 // ポップアップウィンドウの買値、売値入力欄の変更イベント
@@ -262,128 +302,131 @@ popupSellPrice.addEventListener('input', handleKeyPressInPriceInput);
 saveDetails.addEventListener('click', () => {
     const buy = popupBuyPrice.value;
     const sell = popupSellPrice.value;
-    
-    currentItemRow.querySelector('.buyPrice').textContent = buy;
-    currentItemRow.querySelector('.sellPrice').textContent = sell;
-    
-    const candidates = createCandidatesList(currentItemRow);
-    console.log(candidates);
-    if (candidates !== '') {
-        currentItemRow.querySelector('.candidates').textContent = candidates.join('\n');
-    } else {
-        currentItemRow.querySelector('.candidates').textContent = '';
-    }
+    const dataID = parseInt(currentItemRow.dataset.id)
+    const item = items.get(dataID);
+
+    item.buyPrice = parseInt(buy);
+    item.sellPrice = parseInt(sell);
+    item.allCandidatesList = createCandidatesList(item, item.allCandidatesList);
 
     // 確定アイテム用のドロップダウンリストを設定
     populateIdentifiedDropdown(currentItemRow);
+    // 候補リストを表示
+    showCandidatesText(currentItemRow);
 
-    closePopupWindow();
+    closePopupWindow(pricePopupWindow);
 });
 
-// ポップアップウィンドウの閉じるボタンのクリックイベント
-closePopup.addEventListener('click', closePopupWindow);
+// ポップアップウィンドウを閉じる
+function closePopupWindow(popupWindow) {
+    popupWindow.style.display = 'none';
+}
 
-// ポップアップウィンドウの外側をクリックしたときに閉じる
+// ポップアップウィンドウの閉じるボタンのクリックイベント
+closePricePopup.addEventListener('click', () => closePopupWindow(pricePopupWindow));
+closeCandidatesPopup.addEventListener('click', () => closePopupWindow(candidatesPopupWindow));
+
+// ウィンドウの外側をクリックした時の処理
 window.addEventListener('click', (event) => {
-    if (event.target == popupWindow) {
-        closePopupWindow();
+    if (event.target === pricePopupWindow) {
+        closePopupWindow(pricePopupWindow);
+    } else if (event.target === candidatesPopupWindow) {
+        closePopupWindow(candidatesPopupWindow);
     }
 });
 
 // 買値、売値の入力時イベント
 function handleChangePrice(event) {
+    const dataID = parseInt(currentItemRow.dataset.id);
+    const item = items.get(dataID);
     const input = event.target;
-    calculatePrice(input);
+    item.calcPrice(input);
 }
 
 // 買値、売値のキー入力イベント
 function handleKeyPressInPriceInput(event) {
+    const dataID = parseInt(currentItemRow.dataset.id);
+    const item = items.get(dataID);
     if (event.key === 'Enter') {
         event.preventDefault();
         const input = event.target;
-        calculatePrice(input);
+        item.calcPrice(input);
     }
 }
 
-// 買値、売値の計算
-function calculatePrice(input) {
-    if (input.id === 'popupBuyPrice') {
-        popupSellPrice.value = itemData.buyToSell[input.value];
+// 表示用候補の文字列を表示
+function showCandidatesText(row) {
+    const dataID = parseInt(row.dataset.id);
+    const item = items.get(dataID);
+    const cell = row.querySelector('.candidatesForShow')
+    
+    const remainingCount = item.allCandidatesList.length - 3;
+    
+    if (item.identifiedName !== 'default') {
+        cell.textContent = item.identifiedName;
+    } else if (item.buyPrice === null || item.buyPrice === '') {
+        cell.textContent = '';
+    } else if (remainingCount < 0) {
+        cell.textContent = item.allCandidatesList.join('\n');
     } else {
-        popupBuyPrice.value = itemData.sellToBuy[input.value];
+        cell.textContent = item.allCandidatesList.slice(0, 3).join('\n') 
+        cell.appendChild(createMoreCandidatesLink(remainingCount));
     }
 }
 
-// 候補リストを作成
-function createCandidatesList(row) {
-    const categoryValue = row.querySelector('.itemCategory').dataset.value;
-    const buy = row.querySelector('.buyPrice').textContent;
-    const identifiedItemValue = row.querySelector('.identifiedItem').value;
-
-    if (identifiedItemValue !== 'default') return [identifiedItemValue];
-    if (buy === '') return [];
-
-    const buyInt = parseInt(buy);
-    const categoryList = getCategoryList(categoryValue);
-    const identifiedItemSet = createIdentifiedItemSet();
-    const matchingItemsList = categoryList
-        .filter(item => item.buyPrice === buyInt && !identifiedItemSet.has(normalizeItemName(item.name)))
-        .map(item => normalizeItemName(item.name));
-    console.log(matchingItemsList);
-    return matchingItemsList;
+// 「他の候補」リンクを作成
+function createMoreCandidatesLink(count) {
+    const span = document.createElement('span');
+    span.textContent = ` ...他${count}個`;
+    span.style.color = 'blue';
+    span.style.cursor = 'pointer';
+    span.addEventListener('click', () => openCandidatesPopup(currentItemRow));
+    return span;
 }
 
 // 確定アイテム名用ドロップダウンに選択肢を設定
 function populateIdentifiedDropdown(row) {
-    const currentCategoryValue = row.querySelector('.itemCategory').dataset.value;
-    const currentCandidateList = row.querySelector('.candidates').textContent !== ''
-        ? row.querySelector('.candidates').textContent.split('\n')
-        : getItemNameList(currentCategoryValue);
-    const identifiedItemSet = createIdentifiedItemSet();
-    const identifiedDropdown = row.querySelector('.identifiedItem');
-    const optionSet = createIdentifiedOptionSet(identifiedItemSet, currentCandidateList);
-    setOptionsToDropdown(identifiedDropdown, optionSet);
+    const dataID = parseInt(row.dataset.id);
+    const item = items.get(dataID);
+    const cell = row.querySelector('.identifiedItem');
+    const optionSet = createIdentifiedOptionSet(item.allCandidatesList);
+    setOptionsToDropdown(cell, optionSet);
 }
 
 // すでに確定しているアイテム名のセットを作成
-function createIdentifiedItemSet() {
-    const identifiedItemSet = new Set();
-    const rows = tableBody.querySelectorAll('tr');
-    rows.forEach(row => {
-        const identifiedItemName = row.querySelector('.identifiedItem').value;
-        if (identifiedItemName) {
-            identifiedItemSet.add(identifiedItemName);
+function createIdentifiedItemsSet() {
+    const identifiedItemsSet = new Set();
+    items.forEach(item => {
+        if (item.identifiedName !== '') {
+            identifiedItemsSet.add(item.identifiedName);
         }
     });
-    return identifiedItemSet;
+    return identifiedItemsSet;
 }
 
-// 指定したカテゴリのアイテム名だけのリストを取得
-function getItemNameList(categoryValue) {
-    const categoryList = getCategoryList(categoryValue);
-    const itemNameList = categoryList.map(item => item.name);
-    return itemNameList;
-}
-
-// カテゴリ別のアイテム名リストを取得
-function getCategoryList(categoryValue) {
-    switch (categoryValue) {
-        case 'grass': return itemData.grassList;
-        case 'scroll': return itemData.scrollList;
-        case 'staff': return itemData.staffList;
-        case 'bracelet': return itemData.braceletList;
-        case 'incense': return itemData.incenseList;
-        case 'pot': return itemData.potList;
-        default: return [];
+// 候補リストを作成
+function createCandidatesList(item) {
+    // 確定している場合はそのアイテム名だけのリストを返す
+    if (item.identifiedName !== 'default') {
+        return [item.identifiedName];
+    } else {
+        const identifiedItemSet = createIdentifiedItemsSet();
+        const priceMatchList = item.getPriceMatchList();    // 買値が一致するアイテムリスト
+        return priceMatchList.filter(candidate => !identifiedItemSet.has(candidate)).map(candidate => candidate);
     }
+    
 }
 
 // 確定アイテム名の選択肢リストを作成
-function createIdentifiedOptionSet(identifiedSet, candidateList) {
+function createIdentifiedOptionSet(candidatesList) {
+    if (candidatesList.length === 1) {
+        return new Set(candidatesList);
+    }
+    const identifiedSet = createIdentifiedItemsSet();
     const optionSet = new Set();
-    for (const item of candidateList) {
-        if (!identifiedSet.has(normalizeItemName(item))) {
-            optionSet.add(normalizeItemName(item));
+    for (const item of candidatesList) {
+        if (!identifiedSet.has(item)) {
+            optionSet.add((item));
         }
     }
     return optionSet;
@@ -392,31 +435,47 @@ function createIdentifiedOptionSet(identifiedSet, candidateList) {
 // 選択肢をドロップダウンリストにセット
 function setOptionsToDropdown(selectElement, optionSet) {
     selectElement.innerHTML = '';
-    // 初期値を設定
     const defaultOption = document.createElement('option');
-    defaultOption.value = 'default';
-    defaultOption.textContent = '確定したら選択';
-    defaultOption.disabled = true;
-    defaultOption.selected = true;
-    selectElement.appendChild(defaultOption);
+
+    // optionSetの要素が１つの場合はそれを初期値にする
+    if (optionSet.size === 1) {
+        defaultOption.textContent = optionSet.values().next().value;
+        defaultOption.selected = true;
+        selectElement.appendChild(defaultOption);
+        return;
+    } else {
+        // optionSetの要素が2つ以上の場合
+        defaultOption.textContent = '確定したら選択';
+        defaultOption.disabled = true;
+        defaultOption.selected = true;
+        selectElement.appendChild(defaultOption);
+    }
+
     // 候補リストをオプションに追加
     for (const item of optionSet) {
         const option = document.createElement('option');
-        option.value = item;
         option.textContent = item;
         selectElement.appendChild(option);
     }
 }
 
 // アイテム名を確定させた時の処理
-function identifyItem() {
-    refreshCandidates();
+function identifyItem(row) {
+    const dataID = parseInt(row.dataset.id);
+    const item = items.get(dataID);
+    const identifiedName = row.querySelector('.identifiedItem').value;
+
+    item.identifiedName = identifiedName;
+    item.allCandidatesList = createCandidatesList(item);
+
+    refreshAll();
 }
 
 // 選択されたアイテムを削除
 function deleteCheckedItems() {
-    Array.from(tableBody.querySelectorAll('input[type="checkbox"]:checked')).forEach(checkbox => {
-        checkbox.closest('tr').remove();
+    const checkedRows = Array.from(tableBody.querySelectorAll('input[type="checkbox"]:checked'));
+    checkedRows.forEach(row => {
+        items.delete(parseInt(row.closest('tr').dataset.id));
     });
 
     refreshAll();
@@ -425,15 +484,8 @@ function deleteCheckedItems() {
 // 表示中のアイテム全削除
 function deleteAllShownItems() {
     Array.from(tableBody.querySelectorAll('tr')).forEach(row => {
-        if (row.style.display !== 'none') {
-            row.remove();
-        }
+        items.delete(parseInt(row.closest('tr').dataset.id));
     });
 
     refreshAll();
-}
-
-// 杖、お香、壺の後ろ数字部分を削除
-function normalizeItemName(name) {
-    return name.replace(/\[\d+\]$/, '');
 }
