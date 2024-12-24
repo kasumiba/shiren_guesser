@@ -199,9 +199,9 @@ function isMatchFilter(selectedCategoryValue, selectedIdentifiedValue, item) {
     if (selectedIdentifiedValue === 'all') {
         isIdentifiedMatch = true;
     } else if (selectedIdentifiedValue === 'identified') {
-        isIdentifiedMatch = currentIdentifiedItemValue && currentIdentifiedItemValue !== 'default';
+        isIdentifiedMatch = item.identifiedName !== 'default';
     } else if (selectedIdentifiedValue === 'unidentified') {
-        isIdentifiedMatch = !currentIdentifiedItemValue || currentIdentifiedItemValue === 'default';
+        isIdentifiedMatch = item.identifiedName === 'default';
     } else {
         isIdentifiedMatch = false;
     }
