@@ -370,17 +370,17 @@ function showCandidatesText(row) {
         cell.textContent = item.allCandidatesList.join('\n');
     } else {
         cell.textContent = item.allCandidatesList.slice(0, 3).join('\n') 
-        cell.appendChild(createMoreCandidatesLink(remainingCount));
+        cell.appendChild(createMoreCandidatesLink(row, remainingCount));
     }
 }
 
 // 「他の候補」リンクを作成
-function createMoreCandidatesLink(count) {
+function createMoreCandidatesLink(row, count) {
     const span = document.createElement('span');
     span.textContent = ` ...他${count}個`;
     span.style.color = 'blue';
     span.style.cursor = 'pointer';
-    span.addEventListener('click', () => openCandidatesPopup(currentItemRow));
+    span.addEventListener('click', () => openCandidatesPopup(row));
     return span;
 }
 
