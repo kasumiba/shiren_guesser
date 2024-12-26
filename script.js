@@ -4,6 +4,7 @@ import * as itemData from './items.js';
 const items = new Map();
 
 let itemID = 0;
+let currentItemRow;
 
 // DOM 要素取得
 const radioCategoryFilter = document.getElementById('radioCategoryFilter');
@@ -26,8 +27,24 @@ const popupSellPrice = document.getElementById('popupSellPrice');
 const candidatesPopupWindow = document.getElementById('candidatesPopupWindow');
 const closeCandidatesPopup = document.getElementById('closeCandidatesPopup');
 const popupCandidatesList = document.getElementById('candidatesList');
-let currentItemRow;
 
+// ポップアップウィンドウの買値、売値入力欄の変更イベント
+popupBuyPrice.addEventListener('change', handleChangePrice);
+popupBuyPrice.addEventListener('keypress', handleKeyPressInPriceInput);
+popupSellPrice.addEventListener('change', handleChangePrice);
+popupSellPrice.addEventListener('input', handleKeyPressInPriceInput);
+
+// ポップアップウィンドウの保存ボタンのクリックイベント
+saveDetails.addEventListener('click', () => {
+    const item = getItemFromRow(currentItemRow);
+
+    item.buyPrice = parseInt(popupBuyPrice.value);  // 入力された買値をアイテムにセット
+    item.sellPrice = parseInt(popupSellPrice.value);    // 入力された売値をアイテムにセット
+    item.allCandidatesList = createCandidatesList(item, item.allCandidatesList);    // 候補リストを更新
+    populateIdentifiedDropdown(currentItemRow); // 確定アイテム名用ドロップダウンに選択肢を設定
+    showCandidatesText(currentItemRow);   // 候補リストを表示
+    closePopupWindow(pricePopupWindow);  // ポップアップウィンドウを閉じる
+});
 
 // 選択されたカテゴリフィルターを取得
 function getSelectedCategoryFilter(target) {
@@ -49,6 +66,11 @@ function getSelectedIdentifiedFilter(target) {
     }
 }
 
+// 行からアイテムを取得
+function getItemFromRow(row) {
+    const dataID = parseInt(row.dataset.id);
+    return items.get(dataID);
+}
 
 // 初期化処理
 initializeEventListeners();
@@ -81,7 +103,8 @@ function refreshAll() {
 
 // 入力内容をリセット
 function resetInputFields() {
-    enableItemNameInput();
+    itemNameInput.value = '';
+    itemNameInput.disabled = false;
     hideError();
 }
 
@@ -92,46 +115,32 @@ function validateInput() {
     
     if (categoryValue === 'all') {
         showError('「全て」のカテゴリ選択時はアイテムを追加できません');
-        disableItemNameInput();
-        disableAddButton();
+        itemNameInput.value = '';
+        itemNameInput.disabled = true;
+        addButton.disabled = true;
     }
 
     if (!categoryValue || !itemName) {
-        disableAddButton();
+        addButton.disabled = true;
         return;
     }
 
     if (isNameUsed(itemName)) {
         showError('その名前はすでに使われています');
-        disableAddButton();
+        addButton.disabled = true;
     } else {
         hideError();
-        enableAddButton();
+        addButton.disabled = false;
     }
 }
 
-function disableItemNameInput() {
-    itemNameInput.value = '';
-    itemNameInput.disabled = true;
-}
-
-function enableItemNameInput() {
-    itemNameInput.value = '';
-    itemNameInput.disabled = false;
-}
-
-function disableAddButton() {
-    addButton.disabled = true;
-}
-
-function enableAddButton() {
-    addButton.disabled = false;
-}
-
 function isNameUsed(name) {
-    return Array.from(tableBody.querySelectorAll('.itemName')).some(
-        cell => cell.textContent === name
-    );
+    for (const item of items.values()) {
+        if (item.name === name) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function showError(message) {
@@ -241,11 +250,9 @@ function addItemToTable(id, item) {
     row.querySelector('.itemName').addEventListener('click', () => openPricePopup(row));
     row.querySelector('.identifiedItem').addEventListener('change',() => identifyItem(row));
 
-    item.allCandidatesList = createCandidatesList(item);
-    populateIdentifiedDropdown(row);
-
-    // 候補リストを表示
-    showCandidatesText(row);
+    item.allCandidatesList = createCandidatesList(item);    // 候補リストを作成
+    populateIdentifiedDropdown(row);    // 確定アイテム名用ドロップダウンに選択肢を設定
+    showCandidatesText(row);    // 候補リストを表示
 }
 
 // テーブル行のHTMLを作成
@@ -265,8 +272,7 @@ function createTableRowHTML(item) {
 
 // 買値売値のポップアップウィンドウを開く
 function openPricePopup(row) {
-    const dataID = parseInt(row.dataset.id);
-    const item = items.get(dataID);
+    const item = getItemFromRow(row);
     
     currentItemRow = row;
     // ポップアップウィンドウを初期化
@@ -278,8 +284,7 @@ function openPricePopup(row) {
 
 // 候補リストのポップアップウィンドウを開く
 function openCandidatesPopup(row) {
-    const dataID = parseInt(row.dataset.id)
-    const item = items.get(dataID);
+    const item = getItemFromRow(row);
     const allCandidates = item.allCandidatesList;
     popupCandidatesList.innerHTML = '';
 
@@ -291,31 +296,6 @@ function openCandidatesPopup(row) {
 
     candidatesPopupWindow.style.display = 'block';
 }
-
-// ポップアップウィンドウの買値、売値入力欄の変更イベント
-popupBuyPrice.addEventListener('change', handleChangePrice);
-popupBuyPrice.addEventListener('keypress', handleKeyPressInPriceInput);
-popupSellPrice.addEventListener('change', handleChangePrice);
-popupSellPrice.addEventListener('input', handleKeyPressInPriceInput);
-
-// ポップアップウィンドウの保存ボタンのクリックイベント
-saveDetails.addEventListener('click', () => {
-    const buy = popupBuyPrice.value;
-    const sell = popupSellPrice.value;
-    const dataID = parseInt(currentItemRow.dataset.id)
-    const item = items.get(dataID);
-
-    item.buyPrice = parseInt(buy);
-    item.sellPrice = parseInt(sell);
-    item.allCandidatesList = createCandidatesList(item, item.allCandidatesList);
-
-    // 確定アイテム用のドロップダウンリストを設定
-    populateIdentifiedDropdown(currentItemRow);
-    // 候補リストを表示
-    showCandidatesText(currentItemRow);
-
-    closePopupWindow(pricePopupWindow);
-});
 
 // ポップアップウィンドウを閉じる
 function closePopupWindow(popupWindow) {
@@ -337,40 +317,35 @@ window.addEventListener('click', (event) => {
 
 // 買値、売値の入力時イベント
 function handleChangePrice(event) {
-    const dataID = parseInt(currentItemRow.dataset.id);
-    const item = items.get(dataID);
+    const item = getItemFromRow(currentItemRow);
     const input = event.target;
-    item.calcPrice(input);
+    item.convertPrice(input);
 }
 
 // 買値、売値のキー入力イベント
 function handleKeyPressInPriceInput(event) {
-    const dataID = parseInt(currentItemRow.dataset.id);
-    const item = items.get(dataID);
+    const item = getItemFromRow(currentItemRow);
     if (event.key === 'Enter') {
         event.preventDefault();
         const input = event.target;
-        item.calcPrice(input);
+        item.convertPrice(input);
     }
 }
 
 // 表示用候補の文字列を表示
 function showCandidatesText(row) {
-    const dataID = parseInt(row.dataset.id);
-    const item = items.get(dataID);
+    const item = getItemFromRow(row);
     const cell = row.querySelector('.candidatesForShow')
     
     const remainingCount = item.allCandidatesList.length - 3;
     
     if (item.identifiedName !== 'default') {
         cell.textContent = item.identifiedName;
-    } else if (item.buyPrice === null || item.buyPrice === '') {
-        cell.textContent = '';
-    } else if (remainingCount < 0) {
-        cell.textContent = item.allCandidatesList.join('\n');
-    } else {
+    } else if (remainingCount > 0) {
         cell.textContent = item.allCandidatesList.slice(0, 3).join('\n') 
         cell.appendChild(createMoreCandidatesLink(row, remainingCount));
+    } else {
+        cell.textContent = item.allCandidatesList.join('\n');
     }
 }
 
@@ -386,8 +361,7 @@ function createMoreCandidatesLink(row, count) {
 
 // 確定アイテム名用ドロップダウンに選択肢を設定
 function populateIdentifiedDropdown(row) {
-    const dataID = parseInt(row.dataset.id);
-    const item = items.get(dataID);
+    const item = getItemFromRow(row);
     const cell = row.querySelector('.identifiedItem');
     const optionSet = createIdentifiedOptionSet(item.allCandidatesList);
     setOptionsToDropdown(cell, optionSet);
@@ -461,8 +435,7 @@ function setOptionsToDropdown(selectElement, optionSet) {
 
 // アイテム名を確定させた時の処理
 function identifyItem(row) {
-    const dataID = parseInt(row.dataset.id);
-    const item = items.get(dataID);
+    const item = getItemFromRow(row);
     const identifiedName = row.querySelector('.identifiedItem').value;
 
     item.identifiedName = identifiedName;

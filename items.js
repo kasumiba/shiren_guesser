@@ -19,15 +19,13 @@ export class Item {
     }
 
     // 買値、売値の計算
-    calcPrice(input) {
+    convertPrice(input) {
         if (input.id === 'popupBuyPrice') {
             // 買値が入力された場合
-            this.sellPrice = buyToSell[input.value];
-            document.getElementById('popupSellPrice').value = this.sellPrice;
+            document.getElementById('popupSellPrice').value = buyToSell[input.value];
         } else {
             // 売値が入力された場合
-            this.buyPrice = sellToBuy[input.value];
-            document.getElementById('popupBuyPrice').value = this.buyPrice;
+            document.getElementById('popupBuyPrice').value = sellToBuy[input.value];
         }
     }
 
