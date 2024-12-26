@@ -386,7 +386,11 @@ function createCandidatesList(item) {
     } else {
         const identifiedItemSet = createIdentifiedItemsSet();
         const priceMatchList = item.getPriceMatchList();    // 買値が一致するアイテムリスト
-        return priceMatchList.filter(candidate => !identifiedItemSet.has(candidate)).map(candidate => candidate);
+        const candidatesList = priceMatchList.filter(candidate => !identifiedItemSet.has(candidate)).map(candidate => candidate);
+        if (candidatesList.length === 0) {
+            item.identifiedName = candidatesList[0];
+            return candidatesList;
+        }
     }
     
 }
