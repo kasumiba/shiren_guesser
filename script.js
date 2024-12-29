@@ -40,7 +40,7 @@ saveDetails.addEventListener('click', () => {
 
     item.buyPrice = parseInt(popupBuyPrice.value);  // 入力された買値をアイテムにセット
     item.sellPrice = parseInt(popupSellPrice.value);    // 入力された売値をアイテムにセット
-    item.allCandidatesList = createCandidatesList(item, item.allCandidatesList);    // 候補リストを更新
+    item.allCandidatesList = createCandidatesList(item);    // 候補リストを更新
     populateIdentifiedDropdown(currentItemRow); // 確定アイテム名用ドロップダウンに選択肢を設定
     showCandidatesText(currentItemRow);   // 候補リストを表示
     closePopupWindow(pricePopupWindow);  // ポップアップウィンドウを閉じる
@@ -389,8 +389,8 @@ function createCandidatesList(item) {
         const candidatesList = priceMatchList.filter(candidate => !identifiedItemSet.has(candidate)).map(candidate => candidate);
         if (candidatesList.length === 0) {
             item.identifiedName = candidatesList[0];
-            return candidatesList;
         }
+        return candidatesList;
     }
     
 }
