@@ -12,6 +12,10 @@ body {
     cursor: not-allowed;
 }
 
+.disabled-label {
+    color: #ccc;
+}
+
 /* テーブル関連 */
 .button-container {
     display: flex;  /* 子要素を横並びに配置 */
@@ -123,6 +127,24 @@ body {
     width: 80%;
 }
 
+.popup-content div {
+    margin-bottom: 15px;
+}
+
+.popup-content input[type="checkbox"] :disabled,
+.popup-content input[type="radio"] :disabled {
+    background-color: #ccc;
+}
+
+#saveDetails {
+    cursor: pointer;
+}
+
+#saveDetails:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
 .close {
     color: #aaa;
     float: right;
@@ -143,5 +165,9 @@ body {
 }
 
 #errorMessageNameUsed {
+    display: none;
+}
+
+#errorMessagePriceNotFound {
     display: none;
 }

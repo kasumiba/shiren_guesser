@@ -53,15 +53,30 @@
         </tbody>
     </table>
 
-    <!-- 買値売値ポップアップウィンドウ -->
-    <div id="pricePopupWindow" class="popup-window">
+    <!-- 詳細入力ポップアップウィンドウ -->
+    <div id="detailPopupWindow" class="popup-window">
         <div class="popup-content">
-            <span id="closePricePopup" class="close">&times;</span>
+            <span id="closeDetailPopup" class="close">&times;</span>
             <h2>アイテム詳細入力</h2>
-            <label for="popupBuyPrice">買値：</label>
-            <input type="number" id="popupBuyPrice" />
-            <label for="popupSellPrice">売値：</label>
-            <input type="number" id="popupSellPrice" />
+            <div>
+                <label for="popupBuyPrice">買値：</label>
+                <input type="number" id="popupBuyPrice" />
+                <label for="popupSellPrice">売値：</label>
+                <input type="number" id="popupSellPrice" />
+                <p class="error" id="errorMessagePriceNotFound"></p>
+            </div>
+            <div>
+                <input type="checkbox" id="popupUseToItemCheckbox" disabled="true"/> 
+                <label for="popupUseToItemCheckbox" id="popupUseToItemLabel" class="disabled-label">アイテムに対して読む</label>
+            </div>
+            <div>
+                <label for="popupPotTypeRadios" id="popupPotTypeLabel" class="disabled-label">壺の中身</label>
+                <div id="popupPotTypeRadios">
+                    <label class="disabled-label"><input type="radio" name="potType" value="empty" disabled> 空っぽ</label>
+                    <label class="disabled-label"><input type="radio" name="potType" value="back" disabled> 背中</label>
+                    <label class="disabled-label"><input type="radio" name="potType" value="surprise" disabled> ビックリ</label>
+                </div>
+            </div>
             <button id="saveDetails">決定</button>
         </div>
     </div>

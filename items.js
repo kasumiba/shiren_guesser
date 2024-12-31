@@ -10,6 +10,8 @@ export class Item {
         this.identifiedName = 'default';
         this.buyPrice = null;
         this.sellPrice = null;
+        this.useToItem = null;
+        this.potType = null;
         this.allCandidatesList = [];
     }
 
@@ -18,29 +20,85 @@ export class Item {
         return categoryEnglishToJapanese[this.categoryValue];
     }
 
-    // 買値、売値の計算
-    convertPrice(input) {
-        if (input.id === 'popupBuyPrice') {
-            // 買値が入力された場合
-            document.getElementById('popupSellPrice').value = buyToSell[input.value];
-        } else {
-            // 売値が入力された場合
-            document.getElementById('popupBuyPrice').value = sellToBuy[input.value];
-        }
+    // 買値から売値を取得
+    getSellPrice(price) {
+        const itemList = this.getMatchList();
+        let sellPrice = null;
+        itemList.forEach(item => {item.buyPrice === parseInt(price) ? sellPrice = item.sellPrice : null});
+        return sellPrice;
     }
 
-    // アイテムの候補リストを取得
-    getPriceMatchList() {
-        const categoryList = this.getCategoryList();
-        
-        if (this.buyPrice === null || this.buyPrice === '') {
-            const priceMatchList = categoryList.map(item => item.name);
-            return this.getUniqueItemList(priceMatchList);
-        } else {
-            const priceMatchList = categoryList.filter(item => item.buyPrice === this.buyPrice).map(item => item.name);
-            console.log(priceMatchList);
-            return this.getUniqueItemList(priceMatchList);
+    // 売値から買値を取得
+    getBuyPrice(price) {
+        const itemList = this.getMatchList();
+        let buyPrice = null;
+        itemList.forEach(item => {item.sellPrice === parseInt(price) ? buyPrice = item.buyPrice : null});
+        return buyPrice;
+    }
+
+    // 条件に当てはまるアイテムの名前だけのリストを取得
+    getMatchItemsNameList() {
+        const matchList = this.getMatchList();
+        const itemNameList = matchList.map(item => item.name);
+
+        return this.getUniqueItemList(itemNameList);
+    }
+
+    // 条件に当てはまるアイテムのリストを取得
+    getMatchList() {
+        let itemList = this.getCategoryList();
+            
+        // 買値が一致するアイテムのリストを取得
+        if (this.buyPrice !== null && this.buyPrice !== '') {
+            itemList = this.getPriceMatchList(itemList);
         }
+        
+        // アイテムに対して読む巻物のリストを取得（巻物の場合）
+        if (this.categoryValue === 'scroll' && this.useToItem === true) {
+            itemList = this.getUseToItemMatchList(itemList);
+        }
+        
+        // 壺の中身が一致するリストを取得（壺の場合）
+        if (this.categoryValue === 'pot' && this.potType !== null) {
+            itemList = this.getPotTypeMatchList(itemList);
+        }
+        
+        return itemList;
+    }
+
+    // 買値が一致するアイテムのリストを取得
+    getPriceMatchList(list) {
+        const matchList = [];
+        
+        list.forEach(item => {
+            if (this.buyPrice === item.buyPrice) {  // 買値が一致するアイテム
+                matchList.push(item);
+            } else if (this.buyPrice === item.buyPrice * 2) {   // 買値の2倍が一致するアイテム（祝福）
+                const copiedItem = { ...item };
+                copiedItem.name = copiedItem.name + '（祝）';
+                matchList.push(copiedItem);
+            } else if (this.buyPrice === Math.floor(item.buyPrice * 0.87)) {    // 買値の0.87倍が一致するアイテム（呪われ）
+                const copiedItem = { ...item };
+                copiedItem.name = copiedItem.name + '（呪）';
+                matchList.push(copiedItem);
+            }
+        });
+        return matchList;
+    }
+
+    // 買値の2倍が一致するアイテムのリストを取得（祝福されたアイテムの可能性があるため）
+    getPriceDoubleMatchList(list) {
+        return list.filter(item => item.buyPrice === this.buyPrice * 2);
+    }
+
+    // アイテムに対して読むかどうかの区分が一致するリストを取得（巻物の場合）
+    getUseToItemMatchList(list) {
+        return list.filter(item => item.useToItem === this.useToItem);
+    }
+
+    // 壺の中身が一致するリストを取得（壺の場合）
+    getPotTypeMatchList(list) {
+        return list.filter(item => item.potType === this.potType);
     }
 
     // カテゴリーのリストを取得
@@ -70,6 +128,27 @@ export class Item {
     normalizeItemName(item) {
         return item.replace(/\[.*\]/g, '').trim();
     }
+
+    // 確定時の処理
+    identifyAll(name) {
+        this.identifiedName = name;
+        this.allCandidatesList = [name];
+
+        const itemList = this.getCategoryList();
+        for (const item of itemList) {
+            if (item.name === this.identifiedName) {
+                this.buyPrice = item.buyPrice;
+                this.sellPrice = item.sellPrice;
+                if (item.useToItem) {
+                    this.useToItem = item.useToItem;
+                }
+                if (item.potType) {
+                    this.potType = item.potType;
+                }
+                return;
+            }
+        }
+    }
 }
 
 // カテゴリ名　英語→日本語　対応表
@@ -85,58 +164,6 @@ const categoryEnglishToJapanese = {
 // カテゴリ名　日本語→英語　対応表
 const categoryJapaneseToEnglish = Object.fromEntries(
     Object.entries(categoryEnglishToJapanese).map(([en, ja]) => [ja, en])
-);
-
-
-// 買値、売値の対応表（一部の草が、0.4かけるだけではダメなので）
-export const buyToSell = {
-    10: 4,
-    40: 10,
-    50: 20,
-    70: 25,
-    80: 30,
-    100: 40,
-    200: 80,
-    250: 100,
-    300: 120,
-    400: 160,
-    500: 200,
-    600: 240,
-    700: 280,
-    900: 360,
-    1000: 400,
-    1100: 440,
-    1200: 480,
-    1300: 520,
-    1400: 560,
-    1500: 600,
-    1600: 640,
-    1700: 680,
-    1800: 720,
-    1900: 760,
-    2000: 800,
-    2200: 880,
-    2300: 920,
-    2400: 960,
-    2500: 1000,
-    2600: 1040,
-    3000: 1200,
-    3500: 1400,
-    4000: 1600,
-    5000: 2000,
-    6300: 2520,
-    6400: 2560,
-    6500: 2600,
-    7500: 3000,
-    10000: 4000,
-    10200: 4080,
-    10300: 4120,
-    15000: 6000
-}
-
-// 売値→買値の対応表を作成
-export const sellToBuy = Object.fromEntries(
-    Object.entries(buyToSell).map(([buy, sell]) => [sell, buy])
 );
 
 
@@ -356,64 +383,64 @@ export const incenseList = [
 
 // 壺リスト
 export const potList = [
-    { name: "やりすごしの壺[3]", buyPrice: 1100, sellPrice: 440, useToItem: "空っぽ" },
-    { name: "識別の壺[3]", buyPrice: 1100, sellPrice: 440, useToItem: "空っぽ" },
-    { name: "ただの壺[3]", buyPrice: 1100, sellPrice: 440, useToItem: "空っぽ" },
-    { name: "変化の壺[3]", buyPrice: 1100, sellPrice: 440, useToItem: "空っぽ" },
-    { name: "保存の壺[3]", buyPrice: 1100, sellPrice: 440, useToItem: "空っぽ" },
-    { name: "底抜けの壺[2]", buyPrice: 1200, sellPrice: 480, useToItem: "空っぽ" },
-    { name: "倉庫の壺[2]", buyPrice: 1200, sellPrice: 480, useToItem: "空っぽ" },
-    { name: "ただの壺[4]", buyPrice: 1200, sellPrice: 480, useToItem: "空っぽ" },
-    { name: "やりすごしの壺[4]", buyPrice: 1200, sellPrice: 480, useToItem: "空っぽ" },
-    { name: "保存の壺[4]", buyPrice: 1200, sellPrice: 480, useToItem: "空っぽ" },
-    { name: "識別の壺[4]", buyPrice: 1200, sellPrice: 480, useToItem: "空っぽ" },
-    { name: "変化の壺[4]", buyPrice: 1200, sellPrice: 480, useToItem: "空っぽ" },
-    { name: "保存の壺[5]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "識別の壺[5]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "倉庫の壺[3]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "変化の壺[5]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "換金の壺[3]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "底抜けの壺[3]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "やりすごしの壺[5]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "ただの壺[5]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "割れない壺[3]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "手封じの壺[3]", buyPrice: 1300, sellPrice: 520, useToItem: "空っぽ" },
-    { name: "底抜けの壺[4]", buyPrice: 1400, sellPrice: 560, useToItem: "空っぽ" },
-    { name: "割れない壺[4]", buyPrice: 1400, sellPrice: 560, useToItem: "空っぽ" },
-    { name: "倉庫の壺[4]", buyPrice: 1400, sellPrice: 560, useToItem: "空っぽ" },
-    { name: "手封じの壺[4]", buyPrice: 1400, sellPrice: 560, useToItem: "空っぽ" },
-    { name: "換金の壺[4]", buyPrice: 1400, sellPrice: 560, useToItem: "空っぽ" },
-    { name: "割れない壺[5]", buyPrice: 1500, sellPrice: 600, useToItem: "空っぽ" },
-    { name: "換金の壺[5]", buyPrice: 1500, sellPrice: 600, useToItem: "空っぽ" },
-    { name: "手封じの壺[5]", buyPrice: 1500, sellPrice: 600, useToItem: "空っぽ" },
-    { name: "倉庫の壺[5]", buyPrice: 1500, sellPrice: 600, useToItem: "空っぽ" },
-    { name: "おはらいの壺[2]", buyPrice: 1800, sellPrice: 720, useToItem: "空っぽ" },
-    { name: "呪いの壺[2]", buyPrice: 1800, sellPrice: 720, useToItem: "空っぽ" },
-    { name: "おはらいの壺[3]", buyPrice: 1900, sellPrice: 760, useToItem: "空っぽ" },
-    { name: "呪いの壺[3]", buyPrice: 1900, sellPrice: 760, useToItem: "空っぽ" },
-    { name: "おはらいの壺[4]", buyPrice: 2000, sellPrice: 800, useToItem: "空っぽ" },
-    { name: "呪いの壺[4]", buyPrice: 2000, sellPrice: 800, useToItem: "空っぽ" },
-    { name: "笑いの壺[2]", buyPrice: 2200, sellPrice: 880, useToItem: "背中" },
-    { name: "笑いの壺[3]", buyPrice: 2300, sellPrice: 920, useToItem: "背中" },
-    { name: "魔物の壺[3]", buyPrice: 2300, sellPrice: 920, useToItem: "背中" },
-    { name: "水鉄砲の壺[3]", buyPrice: 2300, sellPrice: 920, useToItem: "背中" },
-    { name: "トドの壺[3]", buyPrice: 2300, sellPrice: 920, useToItem: "背中" },
-    { name: "ビックリの壺[3]", buyPrice: 2300, sellPrice: 920, useToItem: "背中" },
-    { name: "背中の壺[3]", buyPrice: 2300, sellPrice: 920, useToItem: "背中" },
-    { name: "ビックリの壺[4]", buyPrice: 2400, sellPrice: 960, useToItem: "背中" },
-    { name: "魔物の壺[4]", buyPrice: 2400, sellPrice: 960, useToItem: "背中" },
-    { name: "水鉄砲の壺[4]", buyPrice: 2400, sellPrice: 960, useToItem: "背中" },
-    { name: "トドの壺[4]", buyPrice: 2400, sellPrice: 960, useToItem: "背中" },
-    { name: "背中の壺[4]", buyPrice: 2400, sellPrice: 960, useToItem: "背中" },
-    { name: "背中の壺[5]", buyPrice: 2500, sellPrice: 1000, useToItem: "背中" },
-    { name: "トドの壺[5]", buyPrice: 2500, sellPrice: 1000, useToItem: "背中" },
-    { name: "水鉄砲の壺[5]", buyPrice: 2500, sellPrice: 1000, useToItem: "背中" },
-    { name: "魔物の壺[5]", buyPrice: 2500, sellPrice: 1000, useToItem: "背中" },
-    { name: "ビックリの壺[5]", buyPrice: 2500, sellPrice: 1000, useToItem: "背中" },
-    { name: "合成の壺[3]", buyPrice: 6300, sellPrice: 2520, useToItem: "空っぽ" },
-    { name: "合成の壺[4]", buyPrice: 6400, sellPrice: 2560, useToItem: "空っぽ" },
-    { name: "弱化の壺[2]", buyPrice: 10200, sellPrice: 4080, useToItem: "空っぽ" },
-    { name: "強化の壺[2]", buyPrice: 10200, sellPrice: 4080, useToItem: "空っぽ" },
-    { name: "強化の壺[3]", buyPrice: 10300, sellPrice: 4120, useToItem: "空っぽ" },
-    { name: "弱化の壺[3]", buyPrice: 10300, sellPrice: 4120, useToItem: "空っぽ" }
+    { name: "やりすごしの壺[3]", buyPrice: 1100, sellPrice: 440, potType: "empty" },
+    { name: "識別の壺[3]", buyPrice: 1100, sellPrice: 440, potType: "empty" },
+    { name: "ただの壺[3]", buyPrice: 1100, sellPrice: 440, potType: "empty" },
+    { name: "変化の壺[3]", buyPrice: 1100, sellPrice: 440, potType: "empty" },
+    { name: "保存の壺[3]", buyPrice: 1100, sellPrice: 440, potType: "empty" },
+    { name: "底抜けの壺[2]", buyPrice: 1200, sellPrice: 480, potType: "empty" },
+    { name: "倉庫の壺[2]", buyPrice: 1200, sellPrice: 480, potType: "empty" },
+    { name: "ただの壺[4]", buyPrice: 1200, sellPrice: 480, potType: "empty" },
+    { name: "やりすごしの壺[4]", buyPrice: 1200, sellPrice: 480, potType: "empty" },
+    { name: "保存の壺[4]", buyPrice: 1200, sellPrice: 480, potType: "empty" },
+    { name: "識別の壺[4]", buyPrice: 1200, sellPrice: 480, potType: "empty" },
+    { name: "変化の壺[4]", buyPrice: 1200, sellPrice: 480, potType: "empty" },
+    { name: "保存の壺[5]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "識別の壺[5]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "倉庫の壺[3]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "変化の壺[5]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "換金の壺[3]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "底抜けの壺[3]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "やりすごしの壺[5]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "ただの壺[5]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "割れない壺[3]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "手封じの壺[3]", buyPrice: 1300, sellPrice: 520, potType: "empty" },
+    { name: "底抜けの壺[4]", buyPrice: 1400, sellPrice: 560, potType: "empty" },
+    { name: "割れない壺[4]", buyPrice: 1400, sellPrice: 560, potType: "empty" },
+    { name: "倉庫の壺[4]", buyPrice: 1400, sellPrice: 560, potType: "empty" },
+    { name: "手封じの壺[4]", buyPrice: 1400, sellPrice: 560, potType: "empty" },
+    { name: "換金の壺[4]", buyPrice: 1400, sellPrice: 560, potType: "empty" },
+    { name: "割れない壺[5]", buyPrice: 1500, sellPrice: 600, potType: "empty" },
+    { name: "換金の壺[5]", buyPrice: 1500, sellPrice: 600, potType: "empty" },
+    { name: "手封じの壺[5]", buyPrice: 1500, sellPrice: 600, potType: "empty" },
+    { name: "倉庫の壺[5]", buyPrice: 1500, sellPrice: 600, potType: "empty" },
+    { name: "おはらいの壺[2]", buyPrice: 1800, sellPrice: 720, potType: "empty" },
+    { name: "呪いの壺[2]", buyPrice: 1800, sellPrice: 720, potType: "empty" },
+    { name: "おはらいの壺[3]", buyPrice: 1900, sellPrice: 760, potType: "empty" },
+    { name: "呪いの壺[3]", buyPrice: 1900, sellPrice: 760, potType: "empty" },
+    { name: "おはらいの壺[4]", buyPrice: 2000, sellPrice: 800, potType: "empty" },
+    { name: "呪いの壺[4]", buyPrice: 2000, sellPrice: 800, potType: "empty" },
+    { name: "笑いの壺[2]", buyPrice: 2200, sellPrice: 880, potType: "back" },
+    { name: "笑いの壺[3]", buyPrice: 2300, sellPrice: 920, potType: "back" },
+    { name: "魔物の壺[3]", buyPrice: 2300, sellPrice: 920, potType: "back" },
+    { name: "水鉄砲の壺[3]", buyPrice: 2300, sellPrice: 920, potType: "back" },
+    { name: "トドの壺[3]", buyPrice: 2300, sellPrice: 920, potType: "back" },
+    { name: "ビックリの壺[3]", buyPrice: 2300, sellPrice: 920, potType: "surprise" },
+    { name: "背中の壺[3]", buyPrice: 2300, sellPrice: 920, potType: "back" },
+    { name: "ビックリの壺[4]", buyPrice: 2400, sellPrice: 960, potType: "surprise" },
+    { name: "魔物の壺[4]", buyPrice: 2400, sellPrice: 960, potType: "back" },
+    { name: "水鉄砲の壺[4]", buyPrice: 2400, sellPrice: 960, potType: "back" },
+    { name: "トドの壺[4]", buyPrice: 2400, sellPrice: 960, potType: "back" },
+    { name: "背中の壺[4]", buyPrice: 2400, sellPrice: 960, potType: "back" },
+    { name: "背中の壺[5]", buyPrice: 2500, sellPrice: 1000, potType: "back" },
+    { name: "トドの壺[5]", buyPrice: 2500, sellPrice: 1000, potType: "back" },
+    { name: "水鉄砲の壺[5]", buyPrice: 2500, sellPrice: 1000, potType: "back" },
+    { name: "魔物の壺[5]", buyPrice: 2500, sellPrice: 1000, potType: "back" },
+    { name: "ビックリの壺[5]", buyPrice: 2500, sellPrice: 1000, potType: "surprise" },
+    { name: "合成の壺[3]", buyPrice: 6300, sellPrice: 2520, potType: "empty" },
+    { name: "合成の壺[4]", buyPrice: 6400, sellPrice: 2560, potType: "empty" },
+    { name: "弱化の壺[2]", buyPrice: 10200, sellPrice: 4080, potType: "empty" },
+    { name: "強化の壺[2]", buyPrice: 10200, sellPrice: 4080, potType: "empty" },
+    { name: "強化の壺[3]", buyPrice: 10300, sellPrice: 4120, potType: "empty" },
+    { name: "弱化の壺[3]", buyPrice: 10300, sellPrice: 4120, potType: "empty" }
 ]

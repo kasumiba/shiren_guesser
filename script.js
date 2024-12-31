@@ -16,12 +16,17 @@ const deleteAllButton = document.getElementById('deleteAllButton');
 const errorMessageNameUsed = document.getElementById('errorMessageNameUsed');
 const tableBody = document.getElementById('itemTable').querySelector('tbody');
 
-// 買値売値ポップアップウィンドウの要素取得
-const pricePopupWindow = document.getElementById('pricePopupWindow');
-const closePricePopup = document.getElementById('closePricePopup');
+// 詳細入力ポップアップウィンドウの要素取得
+const detailPopupWindow = document.getElementById('detailPopupWindow');
+const closeDetailPopup = document.getElementById('closeDetailPopup');
 const saveDetails = document.getElementById('saveDetails');
 const popupBuyPrice = document.getElementById('popupBuyPrice');
 const popupSellPrice = document.getElementById('popupSellPrice');
+const errorMessagePriceNotFound = document.getElementById('errorMessagePriceNotFound');
+const popupUseToItemCheckbox = document.getElementById('popupUseToItemCheckbox');
+const popupUseToItemLabel = document.getElementById('popupUseToItemLabel');
+const popupPotTypeRadios = document.querySelectorAll('#popupPotTypeRadios input[type="radio"]');
+const popupPotTypeLabel = document.getElementById('popupPotTypeLabel');
 
 // 候補リストポップアップウィンドウの要素取得
 const candidatesPopupWindow = document.getElementById('candidatesPopupWindow');
@@ -38,12 +43,15 @@ popupSellPrice.addEventListener('input', handleKeyPressInPriceInput);
 saveDetails.addEventListener('click', () => {
     const item = getItemFromRow(currentItemRow);
 
-    item.buyPrice = parseInt(popupBuyPrice.value);  // 入力された買値をアイテムにセット
-    item.sellPrice = parseInt(popupSellPrice.value);    // 入力された売値をアイテムにセット
+    item.buyPrice = popupBuyPrice.value ? parseInt(popupBuyPrice.value) : null;  // 入力された買値をアイテムにセット
+    item.sellPrice = popupSellPrice.value ? parseInt(popupSellPrice.value) : null;    // 入力された売値をアイテムにセット
+    item.useToItem = popupUseToItemCheckbox.checked;    // 使用アイテムのチェックボックスの状態をアイテムにセット
+    item.potType = getSelectedPotType();    // ポットの種類をアイテムにセット
+
     item.allCandidatesList = createCandidatesList(item);    // 候補リストを更新
     populateIdentifiedDropdown(currentItemRow); // 確定アイテム名用ドロップダウンに選択肢を設定
     showCandidatesText(currentItemRow);   // 候補リストを表示
-    closePopupWindow(pricePopupWindow);  // ポップアップウィンドウを閉じる
+    closePopupWindow(detailPopupWindow);  // ポップアップウィンドウを閉じる
 });
 
 // 選択されたカテゴリフィルターを取得
@@ -64,6 +72,12 @@ function getSelectedIdentifiedFilter(target) {
     } else if (target === 'label') {
         return selectedRadio ? selectedRadio.parentElement.textContent.trim() : null;
     }
+}
+
+// 選択された壺のタイプを取得
+function getSelectedPotType() {
+    const selectedRadio = document.querySelector('input[name="potType"]:checked');
+    return selectedRadio ? selectedRadio.value : null;
 }
 
 // 行からアイテムを取得
@@ -105,7 +119,7 @@ function refreshAll() {
 function resetInputFields() {
     itemNameInput.value = '';
     itemNameInput.disabled = false;
-    hideError();
+    hideError(errorMessageNameUsed);
 }
 
 // 入力の妥当性チェック
@@ -114,7 +128,7 @@ function validateInput() {
     const itemName = itemNameInput.value.trim();
     
     if (categoryValue === 'all') {
-        showError('「全て」のカテゴリ選択時はアイテムを追加できません');
+        showError(errorMessageNameUsed, '「全て」のカテゴリ選択時はアイテムを追加できません');
         itemNameInput.value = '';
         itemNameInput.disabled = true;
         addButton.disabled = true;
@@ -126,10 +140,10 @@ function validateInput() {
     }
 
     if (isNameUsed(itemName)) {
-        showError('その名前はすでに使われています');
+        showError(errorMessageNameUsed, 'その名前はすでに使われています');
         addButton.disabled = true;
     } else {
-        hideError();
+        hideError(errorMessageNameUsed);
         addButton.disabled = false;
     }
 }
@@ -143,14 +157,14 @@ function isNameUsed(name) {
     return false;
 }
 
-function showError(message) {
-    errorMessageNameUsed.textContent = message;
-    errorMessageNameUsed.style.display = 'block';
+function showError(element, message) {
+    element.textContent = message;
+    element.style.display = 'block';
 }
 
-function hideError() {
-    errorMessageNameUsed.textContent = '';
-    errorMessageNameUsed.style.display = 'none';
+function hideError(element) {
+    element.textContent = '';
+    element.style.display = 'none';
 }
 
 // チェックボックスをリセット
@@ -247,7 +261,7 @@ function addItemToTable(id, item) {
     row.setAttribute('data-id', id);    // data-id属性を設定
     row.innerHTML = createTableRowHTML(item);
     row.querySelector('.itemCheckbox').addEventListener('change', updateDeleteButtonState);
-    row.querySelector('.itemName').addEventListener('click', () => openPricePopup(row));
+    row.querySelector('.itemName').addEventListener('click', () => openDetailPopup(row));
     row.querySelector('.identifiedItem').addEventListener('change',() => identifyItem(row));
 
     item.allCandidatesList = createCandidatesList(item);    // 候補リストを作成
@@ -270,16 +284,79 @@ function createTableRowHTML(item) {
     `;
 }
 
-// 買値売値のポップアップウィンドウを開く
-function openPricePopup(row) {
+// 詳細入力用のポップアップウィンドウを開く
+function openDetailPopup(row) {
     const item = getItemFromRow(row);
     
-    currentItemRow = row;
-    // ポップアップウィンドウを初期化
+    currentItemRow = row;   // 現在の行をグローバル変数に保存
+
+    resetDetailPopup(); // ポップアップウィンドウをリセット
+    setPopupInputValues(item);  // ポップアップウィンドウの入力欄に初期値をセット
+
+    if (item.identifiedName && item.identifiedName !== 'default') {   // 確定アイテム名がある場合
+        disableAll();
+    } else if (item.categoryValue === 'scroll') {  // カテゴリが巻物の場合
+        popupUseToItemLabel.classList.remove('disabled-label');
+        popupUseToItemCheckbox.disabled = false;
+    } else if (item.categoryValue === 'pot') { // カテゴリが壺の場合
+        popupPotTypeLabel.classList.remove('disabled-label');
+        popupPotTypeRadios.forEach(radio => {
+            radio.disabled = false;
+            radio.parentElement.classList.remove('disabled-label');
+            if (item.potType) {
+                radio.checked = item.potType === radio.value;
+            }
+        });
+    }
+
+    detailPopupWindow.style.display = 'block';
+    validatePopupInput();
+}
+
+// 詳細入力用ポップアップウィンドウをリセット
+function resetDetailPopup() {
+    popupBuyPrice.value = '';
+    popupSellPrice.value = '';
+    popupUseToItemCheckbox.checked = false;
+    popupPotTypeRadios.forEach(radio => radio.checked = false);
+    popupBuyPrice.disabled = false;
+    popupSellPrice.disabled = false;
+    popupUseToItemCheckbox.disabled = true;
+    popupUseToItemLabel.classList.add('disabled-label');
+    popupPotTypeRadios.forEach(radio => {
+        radio.disabled = true
+        radio.parentElement.classList.add('disabled-label');
+    });
+}
+
+// 詳細入力用ポップアップウィンドウの入力欄に初期値をセット
+function setPopupInputValues(item) {
     popupBuyPrice.value = item.buyPrice;
     popupSellPrice.value = item.sellPrice;
+    if (item.categoryValue === 'scroll') {
+        popupUseToItemCheckbox.checked = item.useToItem;
+    } else if (item.categoryValue === 'pot') {
+        popupPotTypeRadios.forEach(radio => {
+            radio.checked = item.potType === radio.value;
+        });
+    }
+}
 
-    pricePopupWindow.style.display = 'block';
+// 全てdisabledにする
+function disableAll() {
+    popupBuyPrice.disabled = true;
+    popupSellPrice.disabled = true;
+    popupUseToItemCheckbox.disabled = true;
+    popupPotTypeRadios.forEach(radio => radio.disabled = true);
+}
+
+// 詳細入力用ポップアップの入力妥当性チェック
+function validatePopupInput() {
+    if (errorMessagePriceNotFound.style.display === 'block') {
+        saveDetails.disabled = true;
+    } else {
+        saveDetails.disabled = false;
+    }
 }
 
 // 候補リストのポップアップウィンドウを開く
@@ -303,13 +380,13 @@ function closePopupWindow(popupWindow) {
 }
 
 // ポップアップウィンドウの閉じるボタンのクリックイベント
-closePricePopup.addEventListener('click', () => closePopupWindow(pricePopupWindow));
+closeDetailPopup.addEventListener('click', () => closePopupWindow(detailPopupWindow));
 closeCandidatesPopup.addEventListener('click', () => closePopupWindow(candidatesPopupWindow));
 
 // ウィンドウの外側をクリックした時の処理
 window.addEventListener('click', (event) => {
-    if (event.target === pricePopupWindow) {
-        closePopupWindow(pricePopupWindow);
+    if (event.target === detailPopupWindow) {
+        closePopupWindow(detailPopupWindow);
     } else if (event.target === candidatesPopupWindow) {
         closePopupWindow(candidatesPopupWindow);
     }
@@ -319,7 +396,7 @@ window.addEventListener('click', (event) => {
 function handleChangePrice(event) {
     const item = getItemFromRow(currentItemRow);
     const input = event.target;
-    item.convertPrice(input);
+    convertPrice(item, input);
 }
 
 // 買値、売値のキー入力イベント
@@ -328,8 +405,36 @@ function handleKeyPressInPriceInput(event) {
     if (event.key === 'Enter') {
         event.preventDefault();
         const input = event.target;
-        item.convertPrice(input);
+        convertPrice(item, input);
     }
+}
+
+// 買値、売値から相手の値を取得
+function convertPrice(item, input) {
+    if (input.value === null || input.value === '') {   // 入力が空の場合
+        popupBuyPrice.value = '';
+        popupSellPrice.value = '';
+        hideError(errorMessagePriceNotFound);
+    } else if (input.id === 'popupBuyPrice') { // 買値が入力された場合
+        const sellPrice = item.getSellPrice(input.value);
+        if (sellPrice) {
+            popupSellPrice.value = sellPrice;
+            hideError(errorMessagePriceNotFound);
+        } else {
+            popupSellPrice.value = '';
+            showError(errorMessagePriceNotFound, '該当する売値が見つかりません');
+        }
+    } else if (input.id === 'popupSellPrice') {  // 売値が入力された場合
+        const buyPrice = item.getBuyPrice(input.value);
+        if (buyPrice) {
+            popupBuyPrice.value = buyPrice;
+            hideError(errorMessagePriceNotFound);
+        } else {
+            popupBuyPrice.value = '';
+            showError(errorMessagePriceNotFound, '該当する買値が見つかりません');
+        }
+    }
+    validatePopupInput();
 }
 
 // 表示用候補の文字列を表示
@@ -385,10 +490,10 @@ function createCandidatesList(item) {
         return [item.identifiedName];
     } else {
         const identifiedItemSet = createIdentifiedItemsSet();
-        const priceMatchList = item.getPriceMatchList();    // 買値が一致するアイテムリスト
-        const candidatesList = priceMatchList.filter(candidate => !identifiedItemSet.has(candidate)).map(candidate => candidate);
+        const matchList = item.getMatchItemsNameList();    // 条件に一致するアイテム名のリスト
+        const candidatesList = matchList.filter(candidate => !identifiedItemSet.has(candidate)).map(candidate => candidate);
         if (candidatesList.length === 1) {
-            item.identifiedName = candidatesList[0];
+            item.identifiedName = removeCurseBless(candidatesList[0]);
         }
         return candidatesList;
     }
@@ -397,17 +502,24 @@ function createCandidatesList(item) {
 
 // 確定アイテム名の選択肢リストを作成
 function createIdentifiedOptionSet(candidatesList) {
-    if (candidatesList.length === 1) {
-        return new Set(candidatesList);
+    const baseNameCandidatesList = candidatesList.map(candidate => removeCurseBless(candidate));
+    
+    if (baseNameCandidatesList.length === 1) {
+        return new Set(baseNameCandidatesList);
     }
     const identifiedSet = createIdentifiedItemsSet();
     const optionSet = new Set();
-    for (const item of candidatesList) {
+    for (const item of baseNameCandidatesList) {
         if (!identifiedSet.has(item)) {
             optionSet.add((item));
         }
     }
     return optionSet;
+}
+
+// アイテム名の（祝）、（呪）を削除する関数
+function removeCurseBless(item) {
+    return item.replace(/\（祝.*\）/g, '').replace(/\（呪.*\）/g, '').trim();
 }
 
 // 選択肢をドロップダウンリストにセット
@@ -442,9 +554,7 @@ function identifyItem(row) {
     const item = getItemFromRow(row);
     const identifiedName = row.querySelector('.identifiedItem').value;
 
-    item.identifiedName = identifiedName;
-    item.allCandidatesList = createCandidatesList(item);
-
+    item.identifyAll(identifiedName);
     refreshAll();
 }
 
