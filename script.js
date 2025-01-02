@@ -110,9 +110,9 @@ function handleFilterChange() {
 function refreshAll() {
     resetInputFields();
     validateInput();
+    showFilteredItems();
     resetCheckboxes();
     updateDeleteButtonState();
-    showFilteredItems();
 }
 
 // 入力内容をリセット
